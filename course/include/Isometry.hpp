@@ -11,6 +11,9 @@
 
 #pragma once
 
+// Gtest
+#include "gtest/gtest.h"
+
 // Standard libraries
 #include <cmath>
 #include <initializer_list>
@@ -37,6 +40,7 @@ typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type almost_
 class Vector3 {
    public:
     Vector3(const double& x, const double& y, const double& z);
+    Vector3(std::initializer_list<double> elements);
     Vector3();
     /**
      * @brief Normalizes a function./
@@ -106,12 +110,15 @@ class Matrix3 {
     Matrix3& operator=(Matrix3&& mat);
     Matrix3& operator=(const Matrix3& mat);
     bool operator==(const Matrix3& a) const;
+    bool operator!=(const Matrix3& a) const;
     bool operator==(const std::initializer_list<double>& rhs) const;
     Matrix3 operator+(const Matrix3& a) const;
     Matrix3 operator-(const Matrix3& a) const;
     Matrix3 operator*(const double& a) const;
     Matrix3 operator*(const Matrix3& a) const;
+    Vector3 operator*(const Vector3& a) const;
     Matrix3 operator/(const Matrix3& a) const;
+    Matrix3 operator/(const double a) const;
     const Vector3& operator[](int val) const;
     Vector3& operator[](int val);
 
@@ -121,6 +128,7 @@ class Matrix3 {
     Vector3 col(uint8_t col) const;
 
     // Static members
+    static const Matrix3 RotateAround(const Vector3& axis, double angle);
     static const Matrix3 kIdentity;
     static const Matrix3 kZero;
     static const Matrix3 kOnes;
@@ -134,7 +142,7 @@ class Matrix3 {
 inline Matrix3 operator*(const double scalar, const Matrix3& rhs) {
     Matrix3 result;
     for (auto idx = 0; idx < 3; ++idx) {
-            result[idx] = rhs[idx] * scalar;
+        result[idx] = rhs[idx] * scalar;
     }
     return result;
 }
@@ -149,6 +157,74 @@ inline std::ostream& operator<<(std::ostream& os, const Matrix3& mat) {
               << "[" << std::to_string(static_cast<int>(mat[2][0])) << ", "
               << std::to_string(static_cast<int>(mat[2][1])) << ", " << std::to_string(static_cast<int>(mat[2][2]))
               << "]]";
+}
+
+const inline Matrix3 matrix_multiplication(Matrix3 mat, Matrix3 rhs) {
+    Matrix3 result;
+    for (uint16_t row = 0; row < 3; ++row) {
+        for (uint16_t column = 0; column < 3; ++column) {
+            result[row][column] =
+                mat[row][0] * rhs[0][column] + mat[row][1] * rhs[1][column] + mat[row][2] * rhs[2][column];
+        }
+    }
+    return result;
+}
+
+class Isometry {
+   public:
+    Isometry(const Matrix3& rotation);
+    Isometry(const Vector3& translation, const Matrix3& rotation);
+
+    Isometry compose(const Isometry& isometry) const;
+    Isometry inverse() const;
+    Matrix3 rotation() const;
+    Vector3 transform(Vector3 translation) const;
+    Vector3 translation() const;
+
+    static Isometry FromTranslation(const std::initializer_list<double>& values);
+    static Isometry FromEulerAngles(double yaw, double pitch, double roll);
+    static Matrix3 RotateAround(const Vector3& axis, double angle);
+
+    // Operators
+    bool operator==(const Isometry& a) const;
+    Vector3 operator*(const Vector3& a) const;
+    Isometry operator*(const Isometry& a) const;
+
+   private:
+    Matrix3 rotation_;
+    Vector3 translation_;
+};
+
+inline ::testing::AssertionResult areAlmostEqual(const Isometry& lhs, const Isometry& rhs, const double tolerance) {
+    auto lhs_rotation = lhs.rotation();
+    auto lhs_translation = lhs.translation();
+
+    auto rhs_rotation = rhs.rotation();
+    auto rhs_translation = rhs.translation();
+
+    for (uint8_t index_x = 0; index_x < 3; ++index_x) {
+        for (uint8_t index_y = 0; index_y < 3; ++index_y) {
+            if (!almost_equal(lhs_rotation[index_x][index_y], rhs_rotation[index_x][index_y], tolerance)) {
+                return ::testing::AssertionFailure() << "Elements of rotational matrix are not equal";
+            }
+        }
+    }
+    for (uint8_t index = 0; index < 3; ++index) {
+        if (!almost_equal(lhs_translation[index], rhs_translation[index], tolerance)) {
+            return ::testing::AssertionFailure() << "Elements of translation vector are not equal";
+            ;
+        }
+    }
+    return ::testing::AssertionSuccess();
+}
+
+inline std::ostream& operator<<(std::ostream& os, const Isometry& rhs) {
+    auto rhs_rotation = rhs.rotation();
+    return os << "[T: (x: 0, y: 0, z: 0"
+              << "), R:[[" << std::setprecision(9) << rhs_rotation[0][0] << ", " << rhs_rotation[0][1] << ", "
+              << rhs_rotation[0][2] << "], "
+              << "[" << rhs_rotation[1][0] << ", " << rhs_rotation[1][1] << ", " << rhs_rotation[1][2] << "], "
+              << "[" << rhs_rotation[2][0] << ", " << rhs_rotation[2][1] << ", " << rhs_rotation[2][2] << "]]]";
 }
 
 }  // namespace math
