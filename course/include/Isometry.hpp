@@ -18,6 +18,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace ekumen {
 namespace math {
@@ -89,6 +90,65 @@ inline std::ostream& operator<<(std::ostream& os, const Vector3& vect) {
     return os << "(x: " << std::to_string(static_cast<int>(vect.x()))
               << ", y: " << std::to_string(static_cast<int>(vect.y()))
               << ", z: " << std::to_string(static_cast<int>(vect.z())) << ")";
+}
+
+class Matrix3 {
+   public:
+    // Constructors
+    Matrix3(const double m00, const double m01, const double m02, const double m10, const double m11, const double m12,
+            const double m20, const double m21, const double m22);
+    Matrix3(const std::initializer_list<double>& row_1, const std::initializer_list<double>& row_2,
+            const std::initializer_list<double>& row_3);
+    Matrix3();
+    Matrix3(const Matrix3& mat);
+    Matrix3(Matrix3&& mat);
+    // Operators
+    Matrix3& operator=(Matrix3&& mat);
+    Matrix3& operator=(const Matrix3& mat);
+    bool operator==(const Matrix3& a) const;
+    bool operator==(const std::initializer_list<double>& rhs) const;
+    Matrix3 operator+(const Matrix3& a) const;
+    Matrix3 operator-(const Matrix3& a) const;
+    Matrix3 operator*(const double& a) const;
+    Matrix3 operator*(const Matrix3& a) const;
+    Matrix3 operator/(const Matrix3& a) const;
+    const Vector3& operator[](int val) const;
+    Vector3& operator[](int val);
+
+    // Methods
+    double det() const;
+    Vector3 row(uint8_t row) const;
+    Vector3 col(uint8_t col) const;
+
+    // Static members
+    static const Matrix3 kIdentity;
+    static const Matrix3 kZero;
+    static const Matrix3 kOnes;
+
+   private:
+    std::vector<Vector3> mat_;
+};
+
+// non-member binary operators
+
+inline Matrix3 operator*(const double scalar, const Matrix3& rhs) {
+    Matrix3 result;
+    for (auto idx = 0; idx < 3; ++idx) {
+            result[idx] = rhs[idx] * scalar;
+    }
+    return result;
+}
+
+inline std::ostream& operator<<(std::ostream& os, const Matrix3& mat) {
+    return os << "[[" << std::to_string(static_cast<int>(mat[0][0])) << ", "
+              << std::to_string(static_cast<int>(mat[0][1])) << ", " << std::to_string(static_cast<int>(mat[0][2]))
+              << "], "
+              << "[" << std::to_string(static_cast<int>(mat[1][0])) << ", "
+              << std::to_string(static_cast<int>(mat[1][1])) << ", " << std::to_string(static_cast<int>(mat[1][2]))
+              << "], "
+              << "[" << std::to_string(static_cast<int>(mat[2][0])) << ", "
+              << std::to_string(static_cast<int>(mat[2][1])) << ", " << std::to_string(static_cast<int>(mat[2][2]))
+              << "]]";
 }
 
 }  // namespace math
